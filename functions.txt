@@ -11,6 +11,7 @@ void ex()
 //_______________________________________________________fast function____________________________________
 void fast()
 {
+//______don't use it in interactive problems______
     ios_base::sync_with_stdio(0);
     cin.tie(0);
     cout.tie(0);
@@ -154,33 +155,6 @@ if we require for large queries using dp.
 (bottom up approach can be better). 
 */
 
-long long int ncr(long long int n,long long int k)
-{
-    vector<long long int>v(n+1,1);
-    for(int i=k+1;i<=n;i++)
-    {
-        v[i]=i;
-    }
-    for(long long int i=n-k;i>=2;i--)
-    {
-        for(long long int j=i;j<=n;j+=i)
-        {
-            if(v[j]%i==0)
-            {
-                v[j]/=i;
-                goto l;
-            }
-        }
-        l:;
-    }
-    long long int sum=1;
-    for(long long int i=1;i<=n;i++)
-    {
-        sum*=v[i];
-    }
-    return sum;
-}
-
 //__pre() function_must be compiled once____ncr function modulo prime number(m)____________________________
 
 long long int m=1e9+7;
@@ -209,12 +183,17 @@ long long int power(long long int a,long long int b,long long int m)
 long long int maxn=1e5+9;
 vector<long long int>fact(maxn,1),invf(maxn,1);
 void pre()
-{for(long long int i=1;i<maxn;i++)
 {
-    fact[i]=fact[i-1]*i;
-    fact[i]%=m;
-    invf[i]=power(fact[i],m-2,m);
-}
+    for(long long int i=1;i<maxn;i++)
+    {
+        fact[i]=fact[i-1]*i;
+        fact[i]%=m;
+    }
+    invf[maxn-1]=power(fact[maxn-1],m-2,m);
+    for(int i=maxn-2;i>=1;i--)
+    {
+        invf[i]=(invf[i+1]*(i+1LL))%m;
+    }
 }
 long long int ncr(long long int n,long long int r,long long int m)
 {
@@ -255,7 +234,7 @@ long long int power(long long int a,long long int b,long long int m)
     }
 }
 
-//___________________________________________________prefix function________________________________________________
+//___________________________________________________prefix function_(KMP Algorithm)_______________________________________________
 
 vector<int> prefix_function(string s) {
     int n = (int)s.length();
@@ -270,8 +249,75 @@ vector<int> prefix_function(string s) {
     }
     return pi;
 }
+//___________________________________________________Manachers Algorithm___________________________________________________________
 
-//________________seive_____________________________
+vector<int>manachers(string s)
+{
+    int n=s.length();
+    vector<int>v(n,0);
+    int l=-1,r=-1,l1,r1,l2,r2;
+    for(int i=0;i<n;i++)
+    {
+        if(i<=r)
+        {
+            int j=r+l-i;
+            l1=j-v[j]/2,r1=j+v[j]/2;
+            l2=i-v[j]/2,r2=i+v[j]/2;
+            if(l1==l&&r2==r)
+            {
+                while(l2-1>=0&&r2+1<n&&s[l2-1]==s[r2+1])
+                {
+                    l2--;
+                    r2++;
+                }
+                v[i]=r2-l2+1;
+                if(r2>r)
+                {
+                    l=l2;
+                    r=r2;
+                }
+            }
+            else if(l1<l)
+            {
+                v[i]=2*(j-l)+1;
+            }
+            else
+            {
+                v[i]=v[j];
+            }
+        }
+        else
+        {
+            l=i,r=i;
+            while(l-1>=0&&r+1<n&&s[l-1]==s[r+1])
+            {
+                l--;
+                r++;
+            }
+            v[i]=r-l+1;
+        }
+    }
+    return v;
+}
+
+/*
+____Inside main function___
+string a,b="";
+    cin>>a;
+    int n=a.length();
+    vector<int>oddlen=manachers(a);
+    for(int i=0;i<n;i++)
+    {
+        b+="#";
+        b+=a[i];
+    }
+    b+="#";
+    vector<int>evenlen=manachers(b);
+  //evenlen string palindrome lengths are evenlen[i]/2 while oddlen palindromes length are oddlen[i].
+  // oddlen string palindrome with value oddlen[i] at index i start at i-oddlen[i] and end at i+oddlen[i]/2.
+*/
+
+//_______________________________________________________________seive________________________________________________________________________
 
 vector<int> seive()
 {
@@ -301,13 +347,21 @@ vector<int> seive()
 }
 
 
-// disjoint sets
+// _______________________________________________________disjoint sets_____________________________________________________________________
 
-vector<int>p;
+vector<int>p,r;
+/*
+	initializing p->parent and r->rank
+	p.clear();
+	p.resize(n+1,-1);
+    	r.clear();
+    	r.resize(n+1,1);
+*/
 int fun2(int x)
 {    // finding the parent of node x
-    if(p[x]!=x)
+    if(p[x]>0)
     {
+//path compression in finding
         return p[x]=fun2(p[x]);
     }
     else
@@ -317,9 +371,19 @@ int fun2(int x)
 }
 void fun1(int x,int y)
 {  //for connecting x and y nodes if they are not connected
-    fun2(x);
-    fun2(y);
-    p[p[x]]=p[y];
+    x=fun2(x);
+    y=fun2(y);
+// union by rank
+	if(r[x]>r[y])
+	{
+		p[y]=x;
+		r[x]+=r[y];
+	}
+	else
+	{
+		p[x]=y;
+		r[y]+=r[x];
+	}
 }
 
 
@@ -367,3 +431,55 @@ priority_queue<pair<int,int>,vector<pair<int,int>>,comparenum>p;
 vector<pair<int,int>>v;
 sort(v.begin(),v.end(),comparenum());
 */
+//__________________________________________________________________Quicksort_____________________________________
+/*
+  ________this is for returning the index of pivot after sorting (Descending order)_________
+*/
+    int quicksort_returning_pivot_index(vector<int>& nums, int left, int right) {
+        int pivot = nums[left], l = left + 1, r = right;
+        while (l <= r) {
+            if (nums[l] < pivot && nums[r] > pivot) {
+                swap(nums[l++], nums[r--]);
+            }
+            if (nums[l] >= pivot) {
+                l++;
+            }
+            if (nums[r] <= pivot) {
+                r--;
+            }
+        }
+        swap(nums[left], nums[r]);
+        // return the index where pivot element will be place
+        return r;
+    }
+
+
+void quicksort(vector<int>&nums,int left,int right)
+{
+    if(left>=right)
+    {
+        return;
+    }
+    int l=left+1,r=right,pivot=nums[left];
+    while(l<=r)
+    {
+        if(nums[l]>pivot&&nums[r]<pivot)
+        {
+            swap(nums[l],nums[r]);
+            l++;
+            r--;
+        }
+        if(nums[l]<=pivot)
+        {
+            l++;
+        }
+        if(nums[r]>=pivot)
+        {
+            r--;
+        }
+    }
+    swap(nums[left],nums[r]);
+    quicksort(nums,left,r-1);
+    quicksort(nums,r+1,right);
+}
+
